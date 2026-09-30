@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: mssql
+  datasource:
+    url: ${MSSQL_URL}
+    username: ${MSSQL_USERNAME}
+    password: ${MSSQL_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  flyway:
+    locations: classpath:db/migration/mssql
+  jpa:
+    properties:
+      hibernate:
+        use_nationalized_character_data: true

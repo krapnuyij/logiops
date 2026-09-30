@@ -1,0 +1,10 @@
+services:
+  app:
+    image: logiops:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+    ports:
+      - "${LOGIOPS_PORT:-18080}:8080"
