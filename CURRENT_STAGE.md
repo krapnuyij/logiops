@@ -1,8 +1,8 @@
 # 현재 작업 단계
 
 - 마지막 갱신일: 2026-09-30
-- 현재 단계: Stage 10 완료, MVP 완료
-- 애플리케이션 구현 상태: MVP 핵심 물류 흐름, H2·MSSQL 검증, Docker 실행환경과 포트폴리오 문서 정리 완료
+- 현재 단계: Stage 11 내장 데모 UI 구현 및 검증 완료
+- 애플리케이션 구현 상태: MVP 핵심 물류 흐름, H2·MSSQL 검증, Docker 실행환경, 포트폴리오 문서와 내장 정적 데모 UI 구현 완료
 
 ## 완료 항목
 
@@ -68,13 +68,17 @@
 - MSSQL Actions가 기능 브랜치와 main push에서 모두 실행되도록 trigger 범위 정리
 - 빌드 산출물과 프로젝트 캐시가 없는 임시 작업 디렉터리에서 Gradle·local·Docker 절차 재검증
 - PR #1을 merge commit 방식으로 main에 병합하고 main push MSSQL Actions 검증 완료
+- Spring Boot 실행 JAR에 Vanilla HTML·CSS·JavaScript 기반 단일 페이지 데모 UI 포함
+- 기존 REST API만 사용한 상품·재고·복수 상품 주문·출고·취소·이력 화면 구현
+- 정적 UI 리소스 MockMvc 스모크 테스트와 Docker·Chrome 렌더링 검증
 
 ## 진행 중 항목
 
-- 없음
+- 데모 UI 변경사항의 GitHub 반영 준비
 
 ## 다음 작업
 
+- 데모 UI 변경사항을 기능 브랜치 PR로 반영
 - GitHub 저장소 공개 전환과 repository topics 설정 여부 결정
 
 ## 미결정 사항
@@ -172,3 +176,11 @@
 - Markdown 내부 링크, 이전 단계 상태 표현, 줄 끝 공백과 민감정보 형식 후보를 검사했다. 발견된 민감정보는 없으며 추적 중인 환경 파일은 가짜 값만 사용하는 `.env.example`뿐이다.
 - 변경한 GitHub Actions YAML을 macOS 기본 Ruby YAML parser로 읽어 기본 구문을 확인했다.
 - main 병합 push로 시작된 GitHub Actions 실행 [36712963102](https://github.com/krapnuyij/logiops/actions/runs/36712963102)에서 SQL Server 준비, H2 `test`, MSSQL `mssqlTest`와 컨테이너 정리가 모두 성공해 main trigger의 실제 동작을 확인했다.
+- Stage 11 첫 `./gradlew clean check --no-daemon`에서 108건 중 새 정적 UI 테스트 1건이 실패했다. `/`가 `index.html`로 내부 forward되는 Spring welcome page 동작에서 MockMvc 첫 응답에 Content-Type과 본문이 없었던 것이 원인이며, 루트 forward와 실제 `/index.html` 응답을 분리해 검증하도록 수정했다.
+- 정적 HTML의 한글 본문을 MockMvc가 응답 charset 없이 기본 문자셋으로 해석해 본문 assertion이 한 번 더 실패했다. 실제 Docker HTTP 응답은 `text/html;charset=UTF-8`임을 확인했고 스모크 테스트는 인코딩에 영향받지 않는 ASCII 문서 표식을 사용하도록 정정했다.
+- 정정 후 `SystemEndpointIntegrationTest` 4건과 `./gradlew clean check --no-daemon`의 H2 테스트 108건이 모두 통과했다.
+- 데모 UI가 포함된 Docker 이미지를 빌드하고 비루트 `logiops` 사용자, `healthy` 상태, `/`, CSS, JavaScript, health, OpenAPI와 Swagger UI의 HTTP `200`을 확인했다.
+- Docker H2에서 상품 2개 입고, 복수 상품 주문 출고, 다른 주문 취소, 이동 이력 8건과 `409 INSUFFICIENT_STOCK` 응답을 확인했다.
+- Chrome 1440px과 390px 렌더링에서 API 상태, 상품·이력 동적 로딩과 기본 반응형 레이아웃을 확인했다.
+- 실제 Chrome에서 데모 UI 폼을 조작해 상품 등록, 10개 입고, 4개 예약·출고, 2개 예약·취소와 가용재고 6개 초과 주문의 `INSUFFICIENT_STOCK` 표시를 확인했다. 최종 현재재고 6, 예약재고 0, 가용재고 6과 이동 이력 5건이 업무 흐름과 일치했다.
+- 데모 UI의 상품·재고·예약 주문·이동 이력이 함께 보이는 대표 화면을 캡처하고 README에 반영했다.

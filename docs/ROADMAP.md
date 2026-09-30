@@ -217,3 +217,22 @@
 - 프로젝트 설명이 코드와 문서에 일치한다.
 
 임시 작업 디렉터리에서 H2 테스트 107건, local 프로필의 전체 API 예제 흐름과 Docker 빌드·기동 절차를 다시 검증했다. H2와 MSSQL 결과, Apple Silicon MSSQL 제약, V5 batch와 `DATETIMEOFFSET(7)` 정정 이력을 구분해 유지한다. PR #1 병합 후 main push로 시작된 GitHub Actions 실행 [36712963102](https://github.com/krapnuyij/logiops/actions/runs/36712963102)에서도 H2와 MSSQL 전체 검증이 성공했다.
+
+## Stage 11 — 내장 데모 UI
+
+현재 상태: 완료 및 검증. 기존 REST API를 변경하지 않고 Spring Boot 실행 JAR에 포트폴리오 시연용 정적 UI를 포함하고 실제 Chrome에서 핵심 업무 흐름을 검증했다.
+
+### 범위
+
+- Vanilla HTML, CSS, JavaScript 기반 단일 페이지
+- 상품 등록·조회와 상품별 입고·재고 조회
+- 복수 상품 출고 주문 생성과 주문 ID 조회
+- 예약 주문의 출고·취소와 재고 이동 이력 조회
+- `ProblemDetail` 오류 표시와 기본 반응형 레이아웃
+
+### 완료 조건
+
+- 정적 리소스 스모크 테스트와 기존 H2 회귀 테스트가 통과한다.
+- Docker 이미지에서 `/`, health, OpenAPI와 Swagger UI에 접근할 수 있다.
+- 실제 브라우저에서 등록·입고·예약·출고·취소·이력·오류 흐름을 확인한다.
+- 별도 프론트엔드 빌드환경이나 UI 전용 백엔드 API가 추가되지 않는다.
