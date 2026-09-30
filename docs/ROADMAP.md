@@ -176,7 +176,7 @@
 
 ## Stage 9 — MSSQL 연동 및 호환성 검증
 
-현재 상태: 프로필, DB별 migration, 전용 테스트와 x86-64 GitHub Actions 워크플로 구현 완료. 실제 MSSQL 실행 결과 검증 대기.
+현재 상태: 완료. 프로필, DB별 migration, 전용 테스트와 x86-64 GitHub Actions 워크플로를 구현하고 실제 SQL Server 2022에서 검증했다.
 
 ### 범위
 
@@ -194,6 +194,8 @@
 - 핵심 업무 흐름이 MSSQL에서 통과한다.
 - JPA 매핑, 마이그레이션, 비관적 잠금과 트랜잭션 결과를 실제 MSSQL 실행 결과로 기록한다.
 - H2와 MSSQL 차이와 대응을 의사결정 문서에 남긴다.
+
+검증 과정에서 MSSQL V5의 새 컬럼 참조를 `GO`로 batch 분리했고, Hibernate SQL Server dialect에 맞춰 `Instant` 컬럼을 `DATETIMEOFFSET(7)`로 정정했다. 최종 x86-64 GitHub Actions 실행에서 위 완료 조건을 모두 확인했다. H2 결과와 MSSQL 결과는 서로 대체하지 않고 별도로 관리한다.
 
 ## Stage 10 — README와 포트폴리오 정리
 

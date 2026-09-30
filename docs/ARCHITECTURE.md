@@ -147,10 +147,10 @@ Stage 4의 `StockMovement`는 `OutboundOrder` Entity를 참조하지 않고 null
 - 가용재고 검사는 잠금을 획득한 뒤 수행한다.
 - H2에서는 애플리케이션 로직과 기본 동시성 동작을 테스트한다.
 - H2의 잠금 동작이 MSSQL과 완전히 같다고 가정하지 않는다.
-- Stage 9에서 실제 MSSQL의 비관적 잠금과 트랜잭션 동작을 반드시 다시 테스트한다.
+- Stage 9에서 실제 MSSQL의 비관적 잠금과 트랜잭션 동작을 별도로 다시 테스트했다.
 - DB `CHECK`와 `UNIQUE` 제약을 마지막 방어선으로 사용한다.
 
-Stage 3에서는 입고 트랜잭션과 Inventory 잠금을 구현하고 H2 동시 입고를 기본 검증했다. Stage 4와 Stage 5에서는 주문 트랜잭션 경계를 구현했다. Stage 7에서는 입고·예약, 경계·초과 예약, 동일 주문 출고·취소, 복수 상품 역순 요청을 별도 트랜잭션으로 병렬 실행해 H2 기반 회귀 검증을 완료했다. 이 결과는 애플리케이션의 잠금 순서와 정합성 규칙에 대한 근거이며 MSSQL의 잠금 의미나 교착상태 특성이 같다는 근거는 아니다.
+Stage 3에서는 입고 트랜잭션과 Inventory 잠금을 구현하고 H2 동시 입고를 기본 검증했다. Stage 4와 Stage 5에서는 주문 트랜잭션 경계를 구현했다. Stage 7에서는 입고·예약, 경계·초과 예약, 동일 주문 출고·취소, 복수 상품 역순 요청을 별도 트랜잭션으로 병렬 실행해 H2 기반 회귀 검증을 완료했다. 이 결과만으로 MSSQL의 잠금 의미나 교착상태 특성이 같다고 간주하지 않으며, Stage 9 x86-64 SQL Server에서 초과 예약, 동일 주문 최종 처리 경쟁과 역순 다중 상품 잠금을 별도로 실행해 정합성을 확인했다.
 
 ## 8. 데이터베이스와 마이그레이션
 
@@ -163,7 +163,7 @@ Stage 3에서는 입고 트랜잭션과 Inventory 잠금을 구현하고 H2 동�
 - 테스트: H2 테스트 DB에 `db/migration/h2`의 실제 Flyway 마이그레이션 적용
 - Stage 9: MSSQL에는 `db/migration/mssql`의 vendor 전용 마이그레이션 적용
 
-Stage 9에서 IDENTITY와 시간·문자열 타입의 실제 차이를 확인해 V1~V5를 H2와 MSSQL 디렉터리로 분리했다. MSSQL 스크립트는 `IDENTITY(1,1)`, `DATETIMEOFFSET(7)`, `NVARCHAR`를 사용한다. 두 DB는 같은 버전과 제약 이름·업무 규칙을 유지하며 변경 시 함께 갱신한다. 빈 MSSQL DB 적용과 Hibernate validation은 x86-64 GitHub Actions 실행 후 완료 여부를 기록한다.
+Stage 9에서 IDENTITY와 시간·문자열 타입의 실제 차이를 확인해 V1~V5를 H2와 MSSQL 디렉터리로 분리했다. MSSQL 스크립트는 `IDENTITY(1,1)`, `DATETIMEOFFSET(7)`, `NVARCHAR`를 사용한다. 두 DB는 같은 버전과 제약 이름·업무 규칙을 유지하며 변경 시 함께 갱신한다. V5의 새 컬럼 참조는 `GO`로 SQL Server batch를 분리했고, 빈 MSSQL DB 적용과 Hibernate validation을 x86-64 GitHub Actions에서 확인했다.
 
 ## 9. 설정과 프로필
 
@@ -207,4 +207,4 @@ Compose는 local 프로필의 애플리케이션 컨테이너 하나만 실행�
 
 빌드 컨텍스트에서는 Git·Gradle 캐시, 기존 빌드 산출물, IDE 설정, 문서, 테스트 코드와 `.env` 계열 파일을 제외한다. Kubernetes, 서비스 분리, 무중단 배포는 범위 밖이다.
 
-Stage 9 MSSQL 검증은 GitHub Actions `ubuntu-24.04` x86-64 runner와 `mcr.microsoft.com/mssql/server:2022-latest` 서비스 컨테이너를 사용한다. 일반 H2 테스트와 `mssql` JUnit tag의 전용 테스트를 분리하며, CI에서 둘을 순서대로 실행한다. Microsoft JDBC와 Flyway SQL Server 모듈은 Spring Boot BOM 관리 버전을 사용한다. 실제 MSSQL 결과는 워크플로를 실행한 뒤 기록한다.
+Stage 9 MSSQL 검증은 GitHub Actions `ubuntu-24.04` x86-64 runner와 `mcr.microsoft.com/mssql/server:2022-latest` 서비스 컨테이너를 사용한다. 일반 H2 테스트와 `mssql` JUnit tag의 전용 테스트를 분리하며, CI에서 둘을 순서대로 실행한다. Microsoft JDBC와 Flyway SQL Server 모듈은 Spring Boot BOM 관리 버전을 사용한다. 최종 실행에서 SQL Server 기동, migration, JPA validation, 핵심 통합·동시성 테스트가 모두 통과했다. Apple Silicon 로컬 에뮬레이션은 공식 검증 경로가 아니다.

@@ -4,11 +4,11 @@ LogiOps는 단일 물류 거점의 상품, 재고, 출고 주문, 재고 이동 
 
 ## 현재 상태
 
-Stage 9 MSSQL 연동 구성과 전용 테스트를 구현했다. H2와 MSSQL Flyway 스크립트, MSSQL 프로필, x86-64 GitHub Actions 워크플로를 분리했으며 기존 H2 테스트는 계속 통과한다.
+Stage 9까지 완료했다. H2와 MSSQL Flyway 스크립트, MSSQL 프로필, x86-64 GitHub Actions 워크플로를 분리했으며 기존 H2 테스트와 MSSQL 전용 테스트를 각각 실행한다.
 
-실제 SQL Server 2022 마이그레이션, JPA validation과 비관적 잠금 테스트는 아직 GitHub Actions에서 실행하지 않았다. 따라서 Stage 9는 공식 x86-64 환경 검증 대기 상태이며 MSSQL 호환성을 완료된 성과로 간주하지 않는다.
+GitHub Actions x86-64 SQL Server 2022에서 Flyway V1~V5, JPA validation, 핵심 업무 흐름, DB 제약과 비관적 잠금 동시성 테스트가 통과했다. 이 과정에서 H2로 드러나지 않았던 V5 DDL batch 경계와 `Instant`의 `DATETIMEOFFSET(7)` 매핑을 실제 MSSQL 결과에 맞게 수정했다. Apple Silicon 로컬 에뮬레이션은 공식 검증 결과로 사용하지 않는다.
 
-## 계획된 업무 흐름
+## 구현된 업무 흐름
 
 1. 상품 등록과 조회
 2. 상품 입고
@@ -17,7 +17,7 @@ Stage 9 MSSQL 연동 구성과 전용 테스트를 구현했다. H2와 MSSQL Fly
 5. 출고 완료 또는 주문 취소
 6. 재고 이동 이력 조회
 
-가용재고는 `현재재고 - 예약재고`로 계산한다. 주문 상태와 재고 변경은 하나의 트랜잭션에서 처리하고, 최종적으로 MSSQL 환경에서 동시성 정합성을 검증할 계획이다.
+가용재고는 `현재재고 - 예약재고`로 계산한다. 주문 상태와 재고 변경은 하나의 트랜잭션에서 처리하며 H2와 MSSQL의 동시성 결과를 구분해 검증했다.
 
 ## 확정된 기술 기준
 
@@ -104,6 +104,8 @@ Docker 실행도 local 프로필의 인메모리 H2를 사용하므로 컨테이
 ## MSSQL 검증 방법
 
 MSSQL 검증은 Microsoft가 지원하는 x86-64 Linux 환경인 GitHub Actions `ubuntu-24.04`에서 SQL Server 2022 서비스 컨테이너를 사용한다. Apple Silicon의 로컬 에뮬레이션 결과는 공식 검증으로 사용하지 않는다.
+
+기능 브랜치의 GitHub Actions 실행 [36706136444](https://github.com/krapnuyij/logiops/actions/runs/36706136444)에서 빈 DB migration, JPA validation, 핵심 통합·DB 제약·동시성 테스트가 통과했다. H2 검증은 빠른 회귀 테스트의 근거이고 이 x86-64 실행은 MSSQL 호환성의 근거이다.
 
 저장소의 Actions secret에 강한 임시 비밀번호를 `MSSQL_SA_PASSWORD` 이름으로 등록한다. 워크플로는 main 이외의 기능 브랜치 push 또는 기본 브랜치의 수동 실행으로 시작되며, 빈 `logiops` DB를 만들고 H2 테스트와 `mssqlTest`를 순서대로 실행한다. 비밀번호는 저장소 파일이나 로그에 기록하지 않는다.
 

@@ -1,8 +1,8 @@
 # 현재 작업 단계
 
 - 마지막 갱신일: 2026-09-30
-- 현재 단계: Stage 9 구현 완료, x86-64 MSSQL 검증 대기
-- 애플리케이션 구현 상태: 핵심 물류 흐름, H2 동시성, Docker 실행환경, MSSQL 프로필·migration·전용 테스트 구현 완료
+- 현재 단계: Stage 9 완료, 사용자 검토 대기
+- 애플리케이션 구현 상태: 핵심 물류 흐름, H2 동시성, Docker 실행환경과 x86-64 MSSQL 호환성 검증 완료
 
 ## 완료 항목
 
@@ -68,28 +68,28 @@
 - MSSQL 핵심 흐름·DB 제약·동시성 전용 테스트 구현
 - SQL Server 2022 서비스 컨테이너를 사용하는 x86-64 GitHub Actions 워크플로 구현
 - 공통 UTC Clock의 DB 호환 마이크로초 정밀도 적용과 결정적 단위 테스트 구현
+- MSSQL V5 migration의 DDL batch 경계 분리와 `DATETIMEOFFSET(7)` 시간 매핑 정합화
+- x86-64 SQL Server 2022에서 migration, JPA validation, 핵심 흐름·DB 제약·동시성 테스트 완료
 
 ## 진행 중 항목
 
-- GitHub Actions x86-64 환경의 실제 MSSQL 테스트 실행
+- Stage 9 결과 사용자 검토
 
 ## 다음 작업
 
-- 시간 정밀도 수정의 로컬 H2 회귀 테스트 실행
-- 승인된 변경을 기능 브랜치에 commit·push
-- MSSQL 워크플로 실행 결과 확인 후 Stage 9 완료 여부 판단
+- Stage 9 사용자 승인
+- 승인 후 Stage 10 문서·포트폴리오 정리 계획 제시
 
 ## 미결정 사항
 
 - 없음
 
-## 확인된 위험
+## 확인된 제약과 위험
 
 - 현재 개발 환경은 Apple Silicon arm64이다. Microsoft SQL Server Linux 컨테이너는 Intel·AMD x86-64 Linux 호스트만 공식 지원하며 에뮬레이션·변환 환경은 테스트하거나 지원하지 않는다.
-- Apple Silicon 로컬 에뮬레이션은 공식 검증에서 제외하고 GitHub Actions x86-64 Linux를 실제 MSSQL 검증 환경으로 사용한다.
-- MSSQL 프로필과 전용 테스트는 구현했지만 지원 환경에서 아직 실행하지 않았으므로 JPA 매핑·migration·비관적 잠금 호환성은 미검증 상태이다.
+- Apple Silicon 로컬 에뮬레이션은 공식 검증에서 제외하며, 완료된 MSSQL 검증 결과는 GitHub Actions x86-64 Linux 실행만 근거로 한다.
 - Spring Boot 4.1.1 BOM의 Flyway 12.4.0은 H2 2.4.240을 최신 검증 범위보다 높은 버전으로 경고한다. 현재 V1~V5 마이그레이션과 전체 테스트는 통과했으며, 확인된 호환성 문제가 없으므로 개별 버전은 고정하지 않는다.
-- H2 2.4.240 기반 테스트 조합에서 이동 유형 `CHECK`를 `IN` 또는 동등한 `OR`로 정의했을 때 INSERT 중 `Check constraint invalid`와 `database has been closed` 예외가 관찰됐다. 직접 원인은 확정하지 않았다. 동일 허용값을 `CASE` 표현식으로 유지해 테스트를 통과했으며 MSSQL에서는 Stage 9에서 다시 검증한다.
+- H2 2.4.240 기반 테스트 조합에서 이동 유형 `CHECK`를 `IN` 또는 동등한 `OR`로 정의했을 때 INSERT 중 `Check constraint invalid`와 `database has been closed` 예외가 관찰됐다. 직접 원인은 확정하지 않았다. 동일 허용값의 `CASE` 제약은 MSSQL V1~V5 적용과 정상 이동 흐름에서도 통과했다.
 
 ## 검증 결과
 
@@ -163,3 +163,8 @@
 - 같은 실행의 기존 H2 테스트 106건 중 저장 전후 `Instant` 완전 일치를 검사하는 5건이 Linux 환경에서 실패해 `mssqlTest`는 실행되지 않았다.
 - 실패 지점과 공통 패턴을 근거로 시스템 Clock과 DB 컬럼의 정밀도 차이를 원인으로 판단하고 공통 Clock을 마이크로초 단위로 고정했다. 실제 DB·드라이버의 반올림 또는 절삭 방식은 전제로 두지 않는다.
 - 시간 정밀도 수정 후 `./gradlew clean check --no-daemon`을 실행해 H2 테스트 107건이 실패·오류·건너뜀 없이 통과했다.
+- 다음 Actions 실행에서 H2 테스트 107건은 통과했지만 MSSQL V5가 새 컬럼을 같은 batch에서 참조해 `Invalid column name 'outbound_order_id'`로 실패했다. DDL 사이를 `GO`로 분리해 SQL Server batch 컴파일 문제를 해결했다.
+- V5 수정 후 Flyway V1~V5 적용은 성공했고, Hibernate validation이 `Instant`에 `DATETIMEOFFSET(7)`을 기대하지만 migration은 `DATETIME2(6)`인 불일치를 검출했다. MSSQL V1~V4 시간 컬럼을 dialect 기대 타입으로 정정했다.
+- GitHub Actions x86-64 SQL Server 2022 실행 [36706136444](https://github.com/krapnuyij/logiops/actions/runs/36706136444)에서 H2 `test`와 MSSQL `mssqlTest` task가 모두 성공했다.
+- MSSQL에서 빈 DB Flyway V1~V5, Hibernate `ddl-auto=validate`, IDENTITY·시간·Unicode 매핑, 핵심 출고·취소 흐름과 UNIQUE·CHECK·FK 거부 동작을 확인했다.
+- MSSQL에서 초과 동시 예약, 동일 주문 출고·취소 경쟁, 역순 다중 상품 주문이 timeout 없이 끝나고 최종 주문·재고·이력 정합성을 유지함을 확인했다. 이 결과는 H2 검증 결과와 구분해 기록한다.

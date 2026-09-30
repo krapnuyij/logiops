@@ -68,7 +68,7 @@
 - 상태: 확정
 - 결정: 초기 개발·테스트는 H2, 최종 호환성 검증은 MSSQL을 사용한다.
 - 이유: 초기 피드백 속도와 지원 직무 관련 DB 검증을 모두 확보한다.
-- 영향: H2에서는 애플리케이션 로직과 기본 동시성을 테스트한다. H2의 잠금 동작을 MSSQL과 같다고 간주하지 않으며 Stage 9에서 실제 MSSQL로 마이그레이션과 동시성 테스트를 다시 실행한다.
+- 영향: H2에서는 애플리케이션 로직과 기본 동시성을 테스트한다. H2의 잠금 동작을 MSSQL과 같다고 간주하지 않으며, Stage 9에서 실제 MSSQL로 마이그레이션과 동시성 테스트를 별도로 실행해 통과했다.
 
 ## D-006 Flyway 도입 시점
 
@@ -112,7 +112,7 @@
 - 이유: 재고 확인과 변경을 직렬화하고 복수 행의 교착상태 가능성을 낮춘다.
 - 대안: 낙관적 잠금과 재시도.
 - 제외 이유: 충돌 처리와 재시도 정책이 추가되어 초기 구현을 설명하기 복잡해진다.
-- 검증: Stage 7에서 H2로 애플리케이션 로직과 기본 동시성을 테스트한다. 비관적 잠금과 트랜잭션 동작은 Stage 9에서 실제 MSSQL로 반드시 다시 검증한다.
+- 검증: Stage 7에서 H2로 애플리케이션 로직과 기본 동시성을 테스트했고, Stage 9에서 실제 MSSQL로 초과 동시 예약, 동일 주문 출고·취소 경쟁과 역순 다중 상품 잠금을 다시 실행해 통과했다.
 
 ## D-011 오류 응답
 
@@ -133,10 +133,10 @@
 
 - 상태: 확정
 - 결정: MSSQL 이미지, 실행 환경과 DB별 Flyway 스크립트는 Stage 9에서 실제 차이를 확인해 결정하며 최종 선택은 D-019에서 관리한다.
-- 검증: 실제 MSSQL에서 JPA 매핑, 마이그레이션, 비관적 잠금과 트랜잭션 동작을 검증한다.
+- 검증: 실제 MSSQL에서 JPA 매핑, 마이그레이션, 비관적 잠금과 트랜잭션 동작을 검증했고 최종 결과는 D-019에 기록한다.
 - 의존성: JDBC와 Flyway 관련 의존성은 Spring Boot BOM 관리 버전을 우선한다. 확인된 호환성 문제가 있을 때만 개별 버전 고정을 검토한다.
 - Stage 2 관찰: BOM이 선택한 Flyway 12.4.0은 H2 2.4.240이 최신 검증 범위보다 높다는 경고를 출력했다. V1 마이그레이션과 전체 테스트가 통과했으므로 버전을 별도 고정하지 않고 후속 단계에서 계속 관찰한다.
-- Stage 3 관찰: H2 2.4.240 기반 테스트 조합에서 이동 유형 `CHECK`를 `IN` 또는 동등한 `OR`로 정의했을 때 INSERT 중 `Check constraint invalid`와 `database has been closed` 예외가 발생했다. 직접 원인은 확인하지 못했다. 허용값은 그대로 두고 `CASE` 표현식으로 바꾸어 V2/V3 마이그레이션과 전체 테스트를 통과했으며, MSSQL에서 해당 제약을 다시 검증한다.
+- Stage 3 관찰: H2 2.4.240 기반 테스트 조합에서 이동 유형 `CHECK`를 `IN` 또는 동등한 `OR`로 정의했을 때 INSERT 중 `Check constraint invalid`와 `database has been closed` 예외가 발생했다. 직접 원인은 확인하지 못했다. 허용값은 그대로 두고 `CASE` 표현식으로 바꾸어 H2 V2/V3와 전체 테스트를 통과했으며, MSSQL에서도 V1~V5 적용과 정상 이동 흐름을 확인했다.
 - Stage 9 확인: Spring Boot 4.1.1 BOM은 `mssql-jdbc:13.4.0.jre11`과 `flyway-sqlserver:12.4.0`을 선택한다. 두 의존성 모두 build에 버전을 직접 지정하지 않는다.
 - 이유: 실제 MSSQL 검증 전에 환경과 vendor별 스크립트를 추측으로 고정하지 않는다.
 
@@ -198,7 +198,9 @@
 - 의존성: Microsoft JDBC와 Flyway SQL Server 모듈은 Spring Boot BOM으로 관리하며 Testcontainers는 추가하지 않는다.
 - 비밀정보: SQL Server 관리자 비밀번호는 GitHub Actions secret으로만 주입한다.
 - 이유: Apple Silicon 에뮬레이션을 공식 검증으로 오인하지 않으면서 실제 vendor 문법, JPA 매핑, DB 제약과 잠금 동작을 반복 가능한 환경에서 검증한다.
-- 검증 상태: GitHub Actions에서 SQL Server 기동과 V1~V5 적용을 확인했다. Hibernate validation 이후 기능·동시성 테스트가 모두 통과하기 전까지 MSSQL 호환성을 완료로 기록하지 않는다.
+- 실제 차이: V5에서 새 컬럼과 이를 참조하는 제약·인덱스를 같은 SQL Server batch에 두면 컴파일 시점에 열을 찾지 못했다. `GO`로 DDL batch를 분리했다.
+- 실제 매핑: `Instant`의 일반 타입 설명만으로 `DATETIME2(6)`을 선택했지만 Hibernate SQL Server dialect는 `DATETIMEOFFSET(7)`을 기대했다. 별도 타입 오버라이드 대신 vendor migration을 dialect 기본 매핑에 맞췄다.
+- 검증 상태: GitHub Actions x86-64 SQL Server 2022에서 기동, 빈 DB V1~V5, Hibernate validation, 핵심 흐름·DB 제약과 비관적 잠금 동시성 테스트가 모두 통과했다. H2 107건의 결과와 MSSQL 전용 결과는 구분해 기록한다.
 
 ## D-020 DB 호환 시간 정밀도를 마이크로초로 통일
 

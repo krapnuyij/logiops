@@ -141,7 +141,7 @@ Stage 1에서 실제 애플리케이션 실행과 HTTP 호출을 함께 수행�
 - 음수 재고 또는 초과 예약 부재
 - 테스트 timeout 내 종료 여부
 
-H2 동시성 테스트는 애플리케이션 로직과 기본 동시성에 대한 회귀 검증이다. 잠금 의미와 deadlock 특성이 MSSQL과 같다고 간주하지 않는다. 비관적 잠금과 트랜잭션 동작은 Stage 9에서 실제 MSSQL로 반드시 다시 검증한다.
+H2 동시성 테스트는 애플리케이션 로직과 기본 동시성에 대한 회귀 검증이다. 잠금 의미와 deadlock 특성이 MSSQL과 같다고 간주하지 않는다. 비관적 잠금과 트랜잭션 동작은 Stage 9에서 실제 MSSQL로 별도 검증했다.
 
 Stage 7에서는 각 작업을 별도 스레드의 Service 호출로 실행해 독립 트랜잭션과 DB 연결을 사용했다. 시작 latch와 결과·테스트 timeout을 함께 사용하고 승자 실행 순서가 아닌 최종 상태를 검증했다. 동일 SKU 등록과 동시 입고, 초과 예약은 기존 테스트를 유지했으며 다음 시나리오를 추가했다.
 
@@ -172,7 +172,14 @@ MSSQL 테스트에는 JUnit `mssql` tag를 지정하고 별도 Gradle `mssqlTest
 
 CI는 `SELECT @@VERSION`으로 실제 SQL Server 엔진을 확인하고 Flyway V1~V5 적용 개수와 주요 column type을 검증한다. UNIQUE·CHECK·FK는 JDBC로 위반을 유도해 DB가 거부하는지 확인한다. 동시성 테스트는 별도 스레드와 독립 트랜잭션, 시작 latch와 timeout을 사용하며 승자 순서가 아니라 최종 상태를 검증한다.
 
-MSSQL 컨테이너의 라이선스 동의는 워크플로 설정에서만 처리한다. 관리자 비밀번호는 GitHub Actions의 `MSSQL_SA_PASSWORD` secret으로 주입하며 저장소에 기록하지 않는다. JDBC와 Flyway 관련 의존성은 Spring Boot BOM 관리 버전을 우선하고, 실제 호환성 문제가 확인된 경우에만 개별 버전 고정을 검토한다. 구현된 MSSQL 테스트는 지원 환경에서 실제 실행하기 전까지 통과한 것으로 기록하지 않는다.
+MSSQL 컨테이너의 라이선스 동의는 워크플로 설정에서만 처리한다. 관리자 비밀번호는 GitHub Actions의 `MSSQL_SA_PASSWORD` secret으로 주입하며 저장소에 기록하지 않는다. JDBC와 Flyway 관련 의존성은 Spring Boot BOM 관리 버전을 우선하고, 실제 호환성 문제가 확인된 경우에만 개별 버전 고정을 검토한다.
+
+Stage 9 최종 결과는 다음과 같이 구분한다.
+
+- H2: 로컬 `./gradlew clean check --no-daemon`에서 테스트 107건이 통과했다. 이는 애플리케이션 로직과 H2 기반 회귀 검증 결과이다.
+- MSSQL: GitHub Actions x86-64 SQL Server 2022에서 `mssqlTest`가 통과했다. 빈 DB migration, JPA validation, 핵심 흐름·DB 제약과 비관적 잠금 동시성 시나리오를 실제 MSSQL에서 확인한 결과이다.
+- vendor 차이: V5의 새 컬럼 참조는 SQL Server batch 경계를 위해 `GO`로 분리했고, `Instant`는 Hibernate SQL Server dialect가 요구하는 `DATETIMEOFFSET(7)`로 정합화했다.
+- 환경 제약: Apple Silicon 로컬 에뮬레이션은 위 MSSQL 결과의 대체 근거로 사용하지 않는다.
 
 ### 3.8 컨테이너 실행 테스트
 
