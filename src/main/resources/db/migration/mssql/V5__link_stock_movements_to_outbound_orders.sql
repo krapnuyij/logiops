@@ -1,9 +1,11 @@
 ALTER TABLE stock_movements
   ADD outbound_order_id BIGINT NULL;
+GO
 
 ALTER TABLE stock_movements
   ADD CONSTRAINT fk_stock_movements_order
     FOREIGN KEY (outbound_order_id) REFERENCES outbound_orders (id);
+GO
 
 ALTER TABLE stock_movements
   ADD CONSTRAINT ck_stock_movements_order_reference CHECK (
@@ -15,6 +17,7 @@ ALTER TABLE stock_movements
       ELSE 0
     END = 1
   );
+GO
 
 CREATE INDEX ix_stock_movements_order_occurred
   ON stock_movements (outbound_order_id, occurred_at DESC, id DESC);
