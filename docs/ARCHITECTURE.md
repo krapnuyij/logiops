@@ -176,6 +176,8 @@ Stage 9에서 IDENTITY와 시간·문자열 타입의 실제 차이를 확인해
 
 MSSQL의 DB URL, 사용자명, 비밀번호는 `MSSQL_URL`, `MSSQL_USERNAME`, `MSSQL_PASSWORD` 환경변수로 주입한다. 실제 값은 저장소에 기록하지 않는다. `hibernate.use_nationalized_character_data=true`로 Entity 문자열과 `NVARCHAR` 스키마를 일치시킨다. Open EntityManager in View는 비활성화해 웹 계층의 지연 로딩 의존을 막는다.
 
+애플리케이션의 공통 UTC `Clock`은 마이크로초 단위로 tick한다. H2 `TIMESTAMP`와 MSSQL `DATETIME2(6)`보다 미세한 나노초 값을 생성 단계에서 제거하므로, DB나 드라이버가 초과 정밀도를 반올림하는지 절삭하는지에 의존하지 않고 생성 직후와 재조회 시각을 동일하게 유지한다.
+
 ## 10. API와 오류 처리
 
 - 성공 응답은 용도별 DTO를 직접 반환한다.

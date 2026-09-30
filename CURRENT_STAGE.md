@@ -67,6 +67,7 @@
 - 환경변수 기반 MSSQL 프로필과 `NVARCHAR` nationalized 문자열 매핑 구성
 - MSSQL 핵심 흐름·DB 제약·동시성 전용 테스트 구현
 - SQL Server 2022 서비스 컨테이너를 사용하는 x86-64 GitHub Actions 워크플로 구현
+- 공통 UTC Clock의 DB 호환 마이크로초 정밀도 적용과 결정적 단위 테스트 구현
 
 ## 진행 중 항목
 
@@ -74,13 +75,13 @@
 
 ## 다음 작업
 
-- GitHub 원격 연결과 Git 작업 범위 별도 승인
-- `MSSQL_SA_PASSWORD` Actions secret 설정
+- 시간 정밀도 수정의 로컬 H2 회귀 테스트 실행
+- 승인된 변경을 기능 브랜치에 commit·push
 - MSSQL 워크플로 실행 결과 확인 후 Stage 9 완료 여부 판단
 
 ## 미결정 사항
 
-- 없음. Git 작업과 비밀정보 설정은 별도 실행 승인이 필요하다.
+- 없음
 
 ## 확인된 위험
 
@@ -92,7 +93,7 @@
 
 ## 검증 결과
 
-- 현재 작업 디렉터리는 Git 저장소이며 아직 커밋이 없다.
+- 현재 브랜치는 `feature/stage-9-mssql`이며 원격 `origin`을 추적한다.
 - Apple Silicon arm64 환경에서 Temurin JDK 21 설치와 `java`, `javac`, macOS JDK 탐지를 검증했다.
 - Docker 29.5.3과 Docker Compose v5.1.4가 설치되어 있다.
 - Gradle Wrapper 8.14.3이 Temurin JDK 21에서 실행됨을 확인했다.
@@ -156,4 +157,9 @@
 - `dependencyInsight`로 Spring Boot BOM이 `mssql-jdbc:13.4.0.jre11`, `flyway-sqlserver:12.4.0`을 선택함을 확인했다.
 - `./gradlew mssqlTest --dry-run --no-daemon`으로 전용 task 구성을 확인했다. 실제 MSSQL 접속과 테스트는 실행하지 않았다.
 - Ruby YAML parser로 워크플로 파일의 기본 YAML 구문을 확인했다. 로컬에는 `actionlint`가 설치되어 있지 않아 GitHub Actions 전용 정적 검사는 실행하지 못했으며, 워크플로의 실제 유효성은 기능 브랜치 push 후 GitHub Actions에서 확인해야 한다.
-- GitHub 저장소는 생성됐지만 로컬 Git에는 remote가 없고 아직 커밋도 없다. remote 등록, commit, push는 별도 사용자 승인 전까지 수행하지 않는다.
+- GitHub 저장소를 `origin`으로 등록하고 `feature/stage-9-mssql` 브랜치를 push했다. 원격 `main`의 초기 커밋을 조상으로 갖는 선형 이력임을 확인했다.
+- 첫 MSSQL Actions 실행은 SQL Server 관리자 비밀번호가 8자 미만이어서 준비 단계에서 실패했다. 비밀번호 값은 로그에서 마스킹됐고 사용자가 Actions secret을 수정했다.
+- 두 번째 MSSQL Actions 실행에서는 SQL Server 2022 x64 컨테이너 기동과 `logiops` DB 생성이 성공했다.
+- 같은 실행의 기존 H2 테스트 106건 중 저장 전후 `Instant` 완전 일치를 검사하는 5건이 Linux 환경에서 실패해 `mssqlTest`는 실행되지 않았다.
+- 실패 지점과 공통 패턴을 근거로 시스템 Clock과 DB 컬럼의 정밀도 차이를 원인으로 판단하고 공통 Clock을 마이크로초 단위로 고정했다. 실제 DB·드라이버의 반올림 또는 절삭 방식은 전제로 두지 않는다.
+- 시간 정밀도 수정 후 `./gradlew clean check --no-daemon`을 실행해 H2 테스트 107건이 실패·오류·건너뜀 없이 통과했다.
