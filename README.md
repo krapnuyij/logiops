@@ -1,6 +1,8 @@
 # LogiOps
 
-LogiOps는 단일 물류 거점의 상품, 재고, 출고 주문과 재고 이동 이력을 관리하는 Spring Boot REST API이다. 기능 수를 늘리기보다 재고 정합성, 트랜잭션 경계, 동시성 제어와 실제 DB 검증을 설명 가능한 규모로 구현했다.
+LogiOps는 단일 물류 거점의 상품, 재고, 출고 주문과 재고 이동 이력을 관리하는 Spring Boot 애플리케이션이다. 기능 수를 늘리기보다 재고 정합성, 트랜잭션 경계, 동시성 제어와 실제 DB 검증을 설명 가능한 규모로 구현했다.
+
+![LogiOps 운영 콘솔에서 상품·재고·출고 주문·재고 이동 이력을 확인하는 화면](docs/images/loqiops_full.png)
 
 ## 핵심 구현
 
@@ -10,6 +12,7 @@ LogiOps는 단일 물류 거점의 상품, 재고, 출고 주문과 재고 이�
 - 재고와 주문에 비관적 쓰기 잠금을 적용하고 복수 상품은 상품 ID 오름차순으로 잠근다.
 - 모든 재고 변경을 append-only 이동 이력으로 추적한다.
 - `ProblemDetail` 기반 오류 계약과 OpenAPI 문서를 제공한다.
+- 실행 JAR에 포함된 정적 데모 UI로 기존 REST API의 핵심 흐름을 시연한다.
 - H2 회귀 테스트와 x86-64 SQL Server 2022 호환성 테스트를 구분해 실행한다.
 
 ## 업무 흐름과 재고 규칙
@@ -39,7 +42,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Client[Swagger UI / REST Client] --> Controller[Spring MVC Controller]
+    Demo[내장 정적 데모 UI] --> Controller[Spring MVC Controller]
+    Client[Swagger UI / REST Client] --> Controller
     Controller --> Service[Application Service]
     Service --> Domain[Domain Entity]
     Service --> Repository[Spring Data JPA Repository]
@@ -88,6 +92,7 @@ DB별 migration은 같은 버전과 업무 제약을 유지하되 H2와 MSSQL의
 | 영속성 | Spring Data JPA, Hibernate, Flyway |
 | 데이터베이스 | H2, Microsoft SQL Server 2022 |
 | API | Bean Validation, springdoc-openapi 3.1.1, Actuator |
+| 데모 UI | Vanilla HTML, CSS, JavaScript |
 | 테스트 | JUnit 5, AssertJ, Mockito, MockMvc |
 | 실행·검증 | Gradle Wrapper 8.14.3, Docker, Docker Compose, GitHub Actions |
 
@@ -95,9 +100,9 @@ DB별 migration은 같은 버전과 업무 제약을 유지하되 H2와 MSSQL의
 
 | 환경 | 확인한 내용 |
 |---|---|
-| H2 | 도메인, Repository, API, 트랜잭션, migration과 기본 동시성 회귀 테스트 107건 |
+| H2 | 도메인, Repository, API, 정적 데모 UI, 트랜잭션, migration과 기본 동시성 회귀 테스트 108건 |
 | SQL Server 2022 | 빈 DB Flyway V1~V5, JPA validation, Unicode·시간·IDENTITY 매핑, 핵심 업무 흐름, DB 제약과 비관적 잠금 경쟁 |
-| Docker | linux/arm64 이미지 빌드, 비루트 실행, healthcheck, OpenAPI·Swagger UI와 기본 API |
+| Docker | linux/arm64 이미지 빌드, 비루트 실행, healthcheck, 데모 UI·OpenAPI·Swagger UI와 기본 API |
 
 최종 x86-64 MSSQL 검증은 main 브랜치의 GitHub Actions 실행 [36712963102](https://github.com/krapnuyij/logiops/actions/runs/36712963102)에서 성공했다. H2 결과와 MSSQL 결과는 서로 대체하지 않는다.
 
@@ -147,6 +152,7 @@ docker compose ps
 - Health: <http://localhost:18080/actuator/health>
 - OpenAPI JSON: <http://localhost:18080/v3/api-docs>
 - Swagger UI: <http://localhost:18080/swagger-ui/index.html>
+- 데모 UI: <http://localhost:18080/>
 
 호스트 포트를 바꾸려면 `LOGIOPS_PORT`를 지정한다.
 
@@ -161,6 +167,21 @@ docker compose down
 ```
 
 이미지는 멀티스테이지로 빌드하며 최종 JRE 이미지에는 실행 JAR만 포함한다. 컨테이너는 비루트 사용자로 실행하고 Actuator health를 Docker `HEALTHCHECK`에 사용한다.
+
+## 브라우저 데모 UI
+
+데모 UI는 별도 프론트엔드 빌드 없이 Spring Boot 실행 JAR에 포함된다. 동일 출처의 기존 REST API만 호출하며 백엔드 규칙이나 트랜잭션을 우회하지 않는다.
+
+다음 순서로 핵심 흐름을 확인할 수 있다.
+
+1. SKU와 상품명을 등록한다.
+2. 상품을 선택하고 재고를 입고한다.
+3. 하나 이상의 상품을 추가해 출고 주문을 생성한다.
+4. 생성된 주문을 출고하거나 취소한다.
+5. 상품·주문·이동 유형으로 재고 이동 이력을 조회한다.
+6. 가용재고를 초과하는 주문으로 `409 INSUFFICIENT_STOCK`을 확인한다.
+
+주문 목록 API는 MVP 범위에 포함하지 않는다. 데모 UI는 생성된 주문을 바로 표시하고, 이후에는 주문 ID로 단건 조회한다. 인증 기능이 없는 로컬 포트폴리오 데모이므로 신뢰할 수 없는 공용 네트워크에 배포하지 않는다.
 
 ## API 실행 예시
 
@@ -251,7 +272,7 @@ GitHub Actions는 `MSSQL_SA_PASSWORD` repository secret을 사용한다. 비밀�
 
 ## 범위와 한계
 
-MVP는 단일 논리 창고와 정수 수량, 전체 출고·전체 취소만 지원한다. 별도 프론트엔드, 인증·인가, 멀티테넌트, 부분 출고, 반품, 재고 조정과 외부 물류 API는 구현하지 않았다.
+MVP는 단일 논리 창고와 정수 수량, 전체 출고·전체 취소만 지원한다. 실행 JAR에 번들된 포트폴리오용 정적 UI만 제공하며, 별도 애플리케이션·빌드환경을 갖는 프론트엔드와 인증·인가, 멀티테넌트, 부분 출고, 반품, 재고 조정, 외부 물류 API는 구현하지 않았다.
 
 인증 기능이 없으므로 신뢰할 수 없는 공용 네트워크에 배포하는 운영 서비스로 사용해서는 안 된다. 향후 확장 후보는 창고·로케이션별 재고, 부분 출고와 백오더, 멱등성 키, 감사 사용자와 외부 WMS 연동이다.
 

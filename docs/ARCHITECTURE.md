@@ -14,7 +14,9 @@ LogiOps는 하나의 Spring Boot 애플리케이션과 하나의 관계형 데�
 
 ```mermaid
 flowchart LR
-    Client[Swagger UI / REST Client] --> API[Spring MVC Controller]
+    Demo[내장 정적 데모 UI] --> API[Spring MVC Controller]
+    Client[Swagger UI / REST Client] --> API
+    Boot[Spring Boot 정적 리소스] --> Demo
     API --> Service[Application Service]
     Service --> Domain[Domain Entity]
     Service --> Repository[Spring Data JPA Repository]
@@ -23,7 +25,7 @@ flowchart LR
     Health[Actuator Health] --> DB
 ```
 
-MVP에는 별도 프론트엔드, 메시지 브로커, 캐시, 외부 API가 없다.
+정적 데모 UI는 Spring Boot 실행 JAR의 `static` 리소스로 함께 배포되고 동일 출처의 기존 REST API만 호출한다. 별도 프론트엔드 애플리케이션, UI 전용 API, 메시지 브로커, 캐시와 외부 API는 없다.
 
 ## 3. 기술 기준
 
@@ -33,6 +35,7 @@ MVP에는 별도 프론트엔드, 메시지 브로커, 캐시, 외부 API가 없
 | 애플리케이션 | Spring Boot 4.1.1 |
 | 빌드 | Gradle Wrapper 8.14.3, Groovy DSL |
 | 웹 | Spring Web MVC |
+| 데모 UI | Vanilla HTML, CSS, JavaScript 정적 리소스 |
 | 영속성 | Spring Data JPA |
 | 검증 | Jakarta Bean Validation |
 | 개발·테스트 DB | H2 |
