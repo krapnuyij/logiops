@@ -99,7 +99,7 @@ DB별 migration은 같은 버전과 업무 제약을 유지하되 H2와 MSSQL의
 | SQL Server 2022 | 빈 DB Flyway V1~V5, JPA validation, Unicode·시간·IDENTITY 매핑, 핵심 업무 흐름, DB 제약과 비관적 잠금 경쟁 |
 | Docker | linux/arm64 이미지 빌드, 비루트 실행, healthcheck, OpenAPI·Swagger UI와 기본 API |
 
-최종 x86-64 MSSQL 검증은 GitHub Actions 실행 [36707720984](https://github.com/krapnuyij/logiops/actions/runs/36707720984)에서 성공했다. H2 결과와 MSSQL 결과는 서로 대체하지 않는다.
+최종 x86-64 MSSQL 검증은 main 브랜치의 GitHub Actions 실행 [36712963102](https://github.com/krapnuyij/logiops/actions/runs/36712963102)에서 성공했다. H2 결과와 MSSQL 결과는 서로 대체하지 않는다.
 
 일반 회귀 테스트를 실행한다.
 
