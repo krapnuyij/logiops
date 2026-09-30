@@ -1,8 +1,8 @@
 # 현재 작업 단계
 
 - 마지막 갱신일: 2026-09-30
-- 현재 단계: Stage 9 완료, 사용자 검토 대기
-- 애플리케이션 구현 상태: 핵심 물류 흐름, H2 동시성, Docker 실행환경과 x86-64 MSSQL 호환성 검증 완료
+- 현재 단계: Stage 10 구현·검증 완료, 사용자 검토 대기
+- 애플리케이션 구현 상태: MVP 핵심 물류 흐름, H2·MSSQL 검증, Docker 실행환경과 포트폴리오 문서 정리 완료
 
 ## 완료 항목
 
@@ -70,19 +70,26 @@
 - 공통 UTC Clock의 DB 호환 마이크로초 정밀도 적용과 결정적 단위 테스트 구현
 - MSSQL V5 migration의 DDL batch 경계 분리와 `DATETIMEOFFSET(7)` 시간 매핑 정합화
 - x86-64 SQL Server 2022에서 migration, JPA validation, 핵심 흐름·DB 제약·동시성 테스트 완료
+- Stage 9 사용자 승인
+- README를 문제·업무 흐름·아키텍처·동시성·DB 차이·검증 근거 중심의 포트폴리오 진입점으로 정리
+- local H2에서 처음부터 재현 가능한 상품·입고·출고·취소 API 실행 예시 정리
+- API 명세를 구현·테스트 완료 상태로 갱신하고 과거 단계 표현 제거
+- MSSQL Actions가 기능 브랜치와 main push에서 모두 실행되도록 trigger 범위 정리
+- 빌드 산출물과 프로젝트 캐시가 없는 임시 작업 디렉터리에서 Gradle·local·Docker 절차 재검증
 
 ## 진행 중 항목
 
-- Stage 9 결과 사용자 검토
+- Stage 10 결과 사용자 검토
 
 ## 다음 작업
 
-- Stage 9 사용자 승인
-- 승인 후 Stage 10 문서·포트폴리오 정리 계획 제시
+- Stage 10 사용자 승인
+- 별도 승인 후 commit, push, PR과 저장소 공개 여부 결정
 
 ## 미결정 사항
 
-- 없음
+- GitHub 저장소 공개 전환 시점과 repository topics
+- Stage 10 변경의 commit, push와 PR 생성 여부
 
 ## 확인된 제약과 위험
 
@@ -168,3 +175,10 @@
 - GitHub Actions x86-64 SQL Server 2022 실행 [36706136444](https://github.com/krapnuyij/logiops/actions/runs/36706136444)에서 H2 `test`와 MSSQL `mssqlTest` task가 모두 성공했다.
 - MSSQL에서 빈 DB Flyway V1~V5, Hibernate `ddl-auto=validate`, IDENTITY·시간·Unicode 매핑, 핵심 출고·취소 흐름과 UNIQUE·CHECK·FK 거부 동작을 확인했다.
 - MSSQL에서 초과 동시 예약, 동일 주문 출고·취소 경쟁, 역순 다중 상품 주문이 timeout 없이 끝나고 최종 주문·재고·이력 정합성을 유지함을 확인했다. 이 결과는 H2 검증 결과와 구분해 기록한다.
+- Stage 10에서 `./gradlew clean check --no-daemon`을 실행해 H2 테스트 107건이 실패·오류·건너뜀 없이 통과했다.
+- `.git`, `.gradle`, `build`를 제외한 임시 작업 디렉터리에서 같은 Gradle 검증을 다시 실행해 성공했다.
+- 임시 작업 디렉터리의 local 프로필을 18081 포트로 기동해 health·OpenAPI·Swagger UI `200`, 상품 등록 `201`, 입고·주문 생성·출고·취소·재고·이력 조회 `200`을 확인했다. 예제 흐름의 최종 재고는 현재 16, 예약 0, 가용 16이었다.
+- 같은 임시 작업 디렉터리에서 `docker compose config`와 `docker compose up --build --detach`를 실행했다. 컨테이너가 `healthy`가 되고 health·OpenAPI·Swagger UI `200`, 상품 등록 `201`, 입고·재고 조회 `200`을 반환함을 확인했다.
+- Docker 컨테이너가 UID 999로 실행되고 `/app`에 `app.jar`만 포함함을 확인한 뒤, 검증용 LogiOps 컨테이너와 전용 네트워크만 제거했다.
+- Markdown 내부 링크, 이전 단계 상태 표현, 줄 끝 공백과 민감정보 형식 후보를 검사했다. 발견된 민감정보는 없으며 추적 중인 환경 파일은 가짜 값만 사용하는 `.env.example`뿐이다.
+- 변경한 GitHub Actions YAML을 macOS 기본 Ruby YAML parser로 읽어 기본 구문을 확인했다. main push에서의 실제 trigger는 변경을 원격에 push한 뒤에만 검증할 수 있다.

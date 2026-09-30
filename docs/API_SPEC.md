@@ -1,8 +1,8 @@
-# API 명세 초안
+# API 명세
 
 ## 1. 상태
 
-상품 API는 Stage 2에서, 입고·재고 API는 Stage 3에서, 주문 생성·조회와 예약 이동 이력 API는 Stage 4에서 구현했다. 출고 완료·주문 취소와 관련 이동 이력 API는 Stage 5에서 구현했다. Stage 6에서 공통 오류 응답과 API별 OpenAPI 오류 계약을 구현하고 검증했다.
+이 문서는 구현된 REST API의 요청·응답과 오류 계약을 정의한다. 상품 API는 Stage 2, 입고·재고 API는 Stage 3, 주문 생성·조회와 예약 이동 이력 API는 Stage 4, 출고 완료·주문 취소 API는 Stage 5에서 구현했다. Stage 6에서 공통 오류 응답과 API별 OpenAPI 계약을 구현했으며 관련 API 테스트와 실제 HTTP 호출로 검증했다.
 
 ## 2. 공통 규칙
 
@@ -267,7 +267,7 @@ Stage 3 마이그레이션 이후 등록된 모든 상품은 재고 행을 가�
 | `GET` | `/v3/api-docs` | OpenAPI JSON |
 | `GET` | `/swagger-ui/index.html` | Swagger UI |
 
-정확한 Swagger UI 경로는 Stage 1에서 사용한 springdoc-openapi 버전으로 실제 검증한 뒤 확정한다.
+위 세 경로는 local 프로필과 Docker 실행환경에서 실제 응답을 확인했다.
 
 ## 8. 오류 응답
 
