@@ -1,9 +1,9 @@
 CREATE TABLE outbound_orders (
   id BIGINT IDENTITY(1,1) NOT NULL,
   status NVARCHAR(16) NOT NULL,
-  created_at DATETIME2(6) NOT NULL,
-  shipped_at DATETIME2(6) NULL,
-  cancelled_at DATETIME2(6) NULL,
+  created_at DATETIMEOFFSET(7) NOT NULL,
+  shipped_at DATETIMEOFFSET(7) NULL,
+  cancelled_at DATETIMEOFFSET(7) NULL,
   CONSTRAINT pk_outbound_orders PRIMARY KEY (id),
   CONSTRAINT ck_outbound_orders_status CHECK (
     CASE

@@ -6,7 +6,7 @@ CREATE TABLE stock_movements (
   reserved_delta BIGINT NOT NULL,
   on_hand_after BIGINT NOT NULL,
   reserved_after BIGINT NOT NULL,
-  occurred_at DATETIME2(6) NOT NULL,
+  occurred_at DATETIMEOFFSET(7) NOT NULL,
   CONSTRAINT pk_stock_movements PRIMARY KEY (id),
   CONSTRAINT fk_stock_movements_product FOREIGN KEY (product_id) REFERENCES products (id),
   CONSTRAINT ck_stock_movements_type CHECK (

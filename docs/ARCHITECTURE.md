@@ -163,7 +163,7 @@ Stage 3에서는 입고 트랜잭션과 Inventory 잠금을 구현하고 H2 동�
 - 테스트: H2 테스트 DB에 `db/migration/h2`의 실제 Flyway 마이그레이션 적용
 - Stage 9: MSSQL에는 `db/migration/mssql`의 vendor 전용 마이그레이션 적용
 
-Stage 9에서 IDENTITY와 시간·문자열 타입의 실제 차이를 확인해 V1~V5를 H2와 MSSQL 디렉터리로 분리했다. MSSQL 스크립트는 `IDENTITY(1,1)`, `DATETIME2(6)`, `NVARCHAR`를 사용한다. 두 DB는 같은 버전과 제약 이름·업무 규칙을 유지하며 변경 시 함께 갱신한다. 빈 MSSQL DB 적용과 Hibernate validation은 x86-64 GitHub Actions 실행 후 완료 여부를 기록한다.
+Stage 9에서 IDENTITY와 시간·문자열 타입의 실제 차이를 확인해 V1~V5를 H2와 MSSQL 디렉터리로 분리했다. MSSQL 스크립트는 `IDENTITY(1,1)`, `DATETIMEOFFSET(7)`, `NVARCHAR`를 사용한다. 두 DB는 같은 버전과 제약 이름·업무 규칙을 유지하며 변경 시 함께 갱신한다. 빈 MSSQL DB 적용과 Hibernate validation은 x86-64 GitHub Actions 실행 후 완료 여부를 기록한다.
 
 ## 9. 설정과 프로필
 
@@ -176,7 +176,7 @@ Stage 9에서 IDENTITY와 시간·문자열 타입의 실제 차이를 확인해
 
 MSSQL의 DB URL, 사용자명, 비밀번호는 `MSSQL_URL`, `MSSQL_USERNAME`, `MSSQL_PASSWORD` 환경변수로 주입한다. 실제 값은 저장소에 기록하지 않는다. `hibernate.use_nationalized_character_data=true`로 Entity 문자열과 `NVARCHAR` 스키마를 일치시킨다. Open EntityManager in View는 비활성화해 웹 계층의 지연 로딩 의존을 막는다.
 
-애플리케이션의 공통 UTC `Clock`은 마이크로초 단위로 tick한다. H2 `TIMESTAMP`와 MSSQL `DATETIME2(6)`보다 미세한 나노초 값을 생성 단계에서 제거하므로, DB나 드라이버가 초과 정밀도를 반올림하는지 절삭하는지에 의존하지 않고 생성 직후와 재조회 시각을 동일하게 유지한다.
+애플리케이션의 공통 UTC `Clock`은 마이크로초 단위로 tick한다. H2 `TIMESTAMP`와 MSSQL `DATETIMEOFFSET(7)`에 저장하기 전에 마이크로초 미만 자릿수를 0으로 고정하므로, DB나 드라이버가 초과 정밀도를 반올림하는지 절삭하는지에 의존하지 않고 생성 직후와 재조회 시각을 동일하게 유지한다.
 
 ## 10. API와 오류 처리
 

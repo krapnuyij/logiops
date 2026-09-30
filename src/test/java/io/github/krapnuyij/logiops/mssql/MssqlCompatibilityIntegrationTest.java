@@ -83,7 +83,7 @@ class MssqlCompatibilityIntegrationTest {
     assertThat(migrationCount).isEqualTo(5);
     assertThat(columnType("products", "sku")).isEqualTo("nvarchar");
     assertThat(columnType("products", "name")).isEqualTo("nvarchar");
-    assertThat(columnType("products", "created_at")).isEqualTo("datetime2");
+    assertThat(columnType("products", "created_at")).isEqualTo("datetimeoffset");
     assertThat(columnType("stock_movements", "movement_type")).isEqualTo("nvarchar");
     assertThat(identityFlag("products", "id")).isEqualTo(1);
   }

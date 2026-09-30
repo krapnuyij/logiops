@@ -3,7 +3,7 @@ CREATE TABLE inventories (
   product_id BIGINT NOT NULL,
   on_hand_quantity BIGINT NOT NULL,
   reserved_quantity BIGINT NOT NULL,
-  updated_at DATETIME2(6) NOT NULL,
+  updated_at DATETIMEOFFSET(7) NOT NULL,
   CONSTRAINT pk_inventories PRIMARY KEY (id),
   CONSTRAINT uk_inventories_product UNIQUE (product_id),
   CONSTRAINT fk_inventories_product FOREIGN KEY (product_id) REFERENCES products (id),

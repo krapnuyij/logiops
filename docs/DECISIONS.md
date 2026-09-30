@@ -193,19 +193,20 @@
 - 상태: 확정
 - 검증 환경: GitHub Actions `ubuntu-24.04` x86-64 runner에서 `mcr.microsoft.com/mssql/server:2022-latest` 서비스 컨테이너를 사용한다.
 - migration: H2는 `db/migration/h2`, MSSQL은 `db/migration/mssql`에서 동일한 V1~V5 이력을 관리한다.
-- 타입 대응: MSSQL은 `IDENTITY(1,1)`, `DATETIME2(6)`, `NVARCHAR`를 사용하고 MSSQL 프로필에서 nationalized 문자열 매핑을 활성화한다.
+- 타입 대응: MSSQL은 `IDENTITY(1,1)`, `DATETIMEOFFSET(7)`, `NVARCHAR`를 사용하고 MSSQL 프로필에서 nationalized 문자열 매핑을 활성화한다. `Instant`는 Hibernate SQL Server dialect의 `TIMESTAMP_UTC` 기대 타입을 따른다.
 - 테스트 분리: `mssql` JUnit tag와 `mssqlTest` Gradle task를 사용해 일반 H2 테스트가 MSSQL 접속에 의존하지 않게 한다.
 - 의존성: Microsoft JDBC와 Flyway SQL Server 모듈은 Spring Boot BOM으로 관리하며 Testcontainers는 추가하지 않는다.
 - 비밀정보: SQL Server 관리자 비밀번호는 GitHub Actions secret으로만 주입한다.
 - 이유: Apple Silicon 에뮬레이션을 공식 검증으로 오인하지 않으면서 실제 vendor 문법, JPA 매핑, DB 제약과 잠금 동작을 반복 가능한 환경에서 검증한다.
-- 검증 상태: 구성과 테스트 코드는 구현했지만 GitHub Actions를 실제 실행하기 전이므로 MSSQL 호환성은 아직 검증 완료로 기록하지 않는다.
+- 검증 상태: GitHub Actions에서 SQL Server 기동과 V1~V5 적용을 확인했다. Hibernate validation 이후 기능·동시성 테스트가 모두 통과하기 전까지 MSSQL 호환성을 완료로 기록하지 않는다.
 
 ## D-020 DB 호환 시간 정밀도를 마이크로초로 통일
 
 - 상태: 확정
 - 결정: 공통 `Clock`을 `Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000))` 기반으로 구성해 애플리케이션 시각을 UTC 마이크로초 정밀도로 생성한다.
 - 관찰: GitHub Actions Linux 환경에서 기존 H2 테스트 106건 중 저장 전후 시각의 완전 일치를 검사하는 5건이 실패했다. 로컬 macOS에서는 같은 테스트가 통과했다.
-- 원인: 실행환경의 시스템 Clock이 DB 컬럼보다 미세한 나노초 값을 제공할 수 있고, H2 `TIMESTAMP`와 MSSQL `DATETIME2(6)`은 마이크로초 정밀도로 설계됐다.
+- 원인: 실행환경의 시스템 Clock이 H2 `TIMESTAMP`에 저장되는 값보다 미세한 나노초 값을 제공할 수 있었다.
+- MSSQL 매핑: Hibernate SQL Server dialect는 `Instant`를 `DATETIMEOFFSET(7)`로 검증한다. 컬럼은 100ns 정밀도를 지원하지만 애플리케이션이 생성하는 값은 마이크로초 단위이므로 마지막 소수 자릿수는 0이다.
 - 이유: 생성 시점부터 하위 나노초 자릿수를 0으로 고정하면 DB·드라이버의 반올림 또는 절삭 방식에 관계없이 저장 전후 값을 동일하게 유지할 수 있다.
 - 대안: 테스트의 시각 비교에 허용 오차를 적용한다.
 - 제외 이유: 허용 오차는 생성 응답과 재조회 응답의 시각이 실제로 달라질 수 있는 문제를 숨긴다.
